@@ -80,6 +80,10 @@ class LeggedRobotVisualizer : public DummyObserver {
               const PrimalSolution& primalSolution,
               const CommandData& command) override;
 
+  void update_with_time(const SystemObservation& observation,
+              const PrimalSolution& primalSolution,
+              const CommandData& command, rclcpp::Time timeStamp);
+
   void publishTrajectory(
       const std::vector<SystemObservation>& system_observation_array,
       scalar_t speed = 1.0);

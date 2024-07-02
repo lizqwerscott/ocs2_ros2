@@ -124,6 +124,27 @@ void LeggedRobotVisualizer::update(const SystemObservation& observation,
   }
 }
 
+void LeggedRobotVisualizer::update_with_time(const SystemObservation& observation,
+                                   const PrimalSolution& primalSolution,
+                                   const CommandData& command, rclcpp::Time timeStamp) {
+  if (observation.time - lastTime_ > minPublishTimeDifference_) {
+    const auto& model = pinocchioInterface_.getModel();
+    auto& data = pinocchioInterface_.getData();
+    pinocchio::forwardKinematics(model, data,
+                                 centroidal_model::getGeneralizedCoordinates(
+                                     observation.state, centroidalModelInfo_));
+    pinocchio::updateFramePlacements(model, data);
+
+    // const auto timeStamp = node_->get_clock()->now();
+    publishObservation(timeStamp, observation);
+    publishDesiredTrajectory(timeStamp, command.mpcTargetTrajectories_);
+    publishOptimizedStateTrajectory(timeStamp, primalSolution.timeTrajectory_,
+                                    primalSolution.stateTrajectory_,
+                                    primalSolution.modeSchedule_);
+    lastTime_ = observation.time;
+  }
+}
+
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
@@ -158,7 +179,7 @@ void LeggedRobotVisualizer::publishJointTransforms(
     rclcpp::Time timeStamp, const vector_t& jointAngles) const {
   if (jointPublisher_ != nullptr) {
     sensor_msgs::msg::JointState joint_state;
-    joint_state.header.stamp = node_->get_clock()->now();
+    joint_state.header.stamp = timeStamp;
     joint_state.name.resize(12);
     joint_state.position.resize(12);
     joint_state.name[0] = "LF_HAA";
